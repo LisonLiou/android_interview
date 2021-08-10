@@ -1,4 +1,4 @@
-# 安卓面试学习整理过程记录
+# For Android Career Arrangement and Progress
 安卓面试学习整理
 
 ### 1. 关于Activity
