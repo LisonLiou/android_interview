@@ -94,78 +94,116 @@ Context具体作用包括：
 
 ## 9. Activity和Service通信的两种方式
 
-	1. Binder对象具体实现两个组件之间的交互
+	1. Binder对象具体实现两个组件之间的交互。使用startService将只触发一次onCreate，多次调用startService将多次触发onStartCommand；而使用bindService不会触发onStartCommand，同样使用bindService启动的Service生命周期会跟随activity的生命周期。ServiceConnection接口的onServiceConnected()方法的触发条件为：bindService()方法执行成功同时onBind()方法返回非空IBinder对象。onServiceDisconnected() 在连接正常关闭的情况下是不会被调用的（即调用unBindService之后不会调用）该方法只在Service 被破坏了或者被杀死的时候调用. 例如, 系统资源不足, 要关闭一些Services, 刚好连接绑定的 Service 是被关闭者之一,  这个时候onServiceDisconnected() 就会被调用。
 
 ```java
 public class MyService extends Service {
- 
-    public MyService() {
-    }
- 
-    private DownloadBinder mBinder = new DownloadBinder();
- 
+
+    DownloadBinder downloadBinder=new DownloadBinder();
     class DownloadBinder extends Binder {
- 
-        public void startDownload() {
-            Log.d("MyService", "startDownload executed");
-        }//在服务中自定义startDownload()方法，待会活动中调用此方法
- 
-        public int getProgress() {
-            Log.d("MyService", "getProgress executed");
+        public void startDownload(){
+            Log.e(TAG,"start download");
+        }
+
+        public int getProcess(){
+            Log.e(TAG,"get Process");
             return 0;
-        }//在服务中自定义getProgress()方法，待会活动中调用此方法
- 
+        }
     }
- 
+
+    private String TAG = MyService.class.getSimpleName();
+    @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return mBinder;
-    }//普通服务的不同之处，onBind()方法不在打酱油，而是会返回一个实例
+        Log.e(TAG,"onBind");
+        return downloadBinder;
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.e(TAG,"onStartCommand");
+        return super.onStartCommand(intent, flags, startId);
+    }
+
+    @Override
+    public void onCreate() {
+        Log.e(TAG,"onCreate");
+        super.onCreate();
+    }
+
+    @Override
+    public boolean onUnbind(Intent intent) {
+        Log.e(TAG,"onUnbind");
+        return super.onUnbind(intent);
+    }
+
+    @Override
+    public void onDestroy() {
+        Log.e(TAG,"onDestroy");
+        super.onDestroy();
+    }
+}
 ```
 
 ```java
-public class MainActivity extends AppCompatActivity implements View.OnClickListener{
- 
-    private MyService.DownloadBinder downloadBinder;
- 
-    private ServiceConnection connection = new ServiceConnection() {
-		//可交互的后台服务与普通服务的不同之处，就在于这个connection建立起了两者的联系
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-        }
- 
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            downloadBinder = (MyService.DownloadBinder) service;
-            downloadBinder.startDownload();
-            downloadBinder.getProgress();
-        }//onServiceConnected()方法关键，在这里实现对服务的方法的调用
-    };
- 
+
+public class MainActivity extends AppCompatActivity {
+
+    private String TAG = MainActivity.class.getSimpleName();
+
+    Button btnBind, btnUnbind;
+
+    Context mContext;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Button bindService = (Button) findViewById(R.id.bind_service);
-        Button unbindService = (Button) findViewById(R.id.unbind_service);
-        bindService.setOnClickListener(this);
-        unbindService.setOnClickListener(this);
- 
-    }
- 
-    @Override
-    public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.bind_service:
-                Intent bindIntent = new Intent(this, MyService.class);
-                bindService(bindIntent, connection, BIND_AUTO_CREATE); // 绑定服务和活动，之后活动就可以去调服务的方法了
-                break;
-            case R.id.unbind_service:
-                unbindService(connection); // 解绑服务，服务要记得解绑，不要造成内存泄漏
-                break;
-            default:
-                break;
+
+        if (savedInstanceState != null) {
+            Log.e(TAG, savedInstanceState.getString("test"));
         }
+
+        mContext = this;
+        btnBind = findViewById(R.id.btn_bind);
+        btnUnbind = findViewById(R.id.btn_unbind);
+
+        btnBind.setOnClickListener(v -> {
+            Intent intent = new Intent(mContext, MyService.class);
+            bindService(intent, serviceConnection, BIND_AUTO_CREATE);
+            startService(intent);
+
+            Toast.makeText(mContext, "Service Bind", Toast.LENGTH_LONG).show();
+        });
+
+        btnUnbind.setOnClickListener(v -> {
+            
+            unbindService(serviceConnection);
+            Toast.makeText(mContext, "Service unBind", Toast.LENGTH_LONG).show();
+        });
+    }
+
+    ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            Log.e(TAG, "onServiceConnected");
+
+            MyService.DownloadBinder binder =(MyService.DownloadBinder)service;
+            binder.startDownload();
+            binder.getProcess();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            Log.e(TAG, "onServiceDisconnected");
+        }
+    };
+
+    @Override
+    protected void onSaveInstanceState(@NonNull @org.jetbrains.annotations.NotNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString("test", "letme");
+        Log.e(TAG, "onSaveInstanceState");
     }
 }
 ```
