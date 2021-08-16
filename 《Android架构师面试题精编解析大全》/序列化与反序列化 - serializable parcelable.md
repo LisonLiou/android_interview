@@ -21,10 +21,10 @@
 
 ## 3.Parcelable与Serializable的性能比较
 
- 	1. 在内存的使用中，Parcelable在性能方面要强于serializable
- 	2. serializable在序列化操作时候会产生大量的临时变量（原因是使用了反射机制），从而导致GC的频繁调用，因此性能上会稍显逊色
- 	3. Parcelable是以IBinder作为信息载体的，在内存上的开销比较小，因此在内存之间进行数据传递的时候，Android推荐使用Parcelable。
- 	4. 在读写数据的时候，Parcelable是在内存中直接进行读写，而Serializable是通过使用IO流的形式将数据写入在硬盘上。
+ 1. 在内存的使用中，Parcelable在性能方面要强于serializable
+ 2. serializable在序列化操作时候会产生大量的临时变量（原因是使用了反射机制），从而导致GC的频繁调用，因此性能上会稍显逊色
+ 3. Parcelable是以IBinder作为信息载体的，在内存上的开销比较小，因此在内存之间进行数据传递的时候，Android推荐使用Parcelable。
+ 4. 在读写数据的时候，Parcelable是在内存中直接进行读写，而Serializable是通过使用IO流的形式将数据写入在硬盘上。
 
 虽然Parcelable的性能要强于Serializable，但是仍然有特殊的情况需要使用Serializable，因为Parcelable无法很好的将数据进行持久化，在不同的Andriod版本中，Parcelable可能会不同，因此数据持久化方面还是使用Serialable。
 
